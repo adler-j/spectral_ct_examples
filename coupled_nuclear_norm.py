@@ -20,19 +20,31 @@ ray_trafo = odl.tomo.RayTransform(reco_space, geometry, impl='astra_cuda')
 grad = odl.Gradient(reco_space, method='forward')
 
 I = odl.IdentityOperator(ray_trafo.range)
-c = -0.8
+c = -0.5
 
 A = odl.DiagonalOperator(ray_trafo, ray_trafo)
-W = odl.ProductSpaceOperator([[I, c * I],
-                              [c * I, I]])
+W_sqrt = odl.ProductSpaceOperator([[(np.sqrt(1 - c) + np.sqrt(c + 1)) * I, (np.sqrt(c + 1) - np.sqrt(1 - c)) * I],
+                                   [(np.sqrt(c + 1) - np.sqrt(1 - c)) * I, (np.sqrt(1 - c) + np.sqrt(c + 1)) * I]])
 L = odl.DiagonalOperator(grad, grad)
 
-op = A.adjoint * W * A + 3 * L.adjoint * L
+op = W_sqrt * A
+rhs = W_sqrt(data)
+
+data_discrepancy = odl.solvers.L2Norm(A.range).translated(rhs)
+regularizer = 0.1 * odl.solvers.NuclearNorm(L.range, singular_vector_exp=1)
 
 fbp_op = odl.tomo.fbp_op(ray_trafo)
-
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
-rhs = A.adjoint(W(data))
-odl.solvers.conjugate_gradient_normal(op, x, rhs, 1000,
-                                      callback=odl.solvers.CallbackShow(display_step=10))
 
+f = odl.solvers.ZeroFunctional(A.domain)
+#f = odl.solvers.IndicatorNonnegativity(A.domain)
+g = [data_discrepancy, regularizer]
+L = [op, L]
+tau = 1.0
+sigma = [0.0003, 1]
+niter = 1000
+
+callback = odl.solvers.CallbackShow(display_step=1)
+
+odl.solvers.douglas_rachford_pd(x, f, g, L, tau, sigma, niter,
+                                callback=callback)
