@@ -1,21 +1,20 @@
-import scipy.io as sio
+"""This formulation solves the model
+
+    min_x ||Ax - b||_2^2
+
+where A is the ray transform.
+"""
+
+from util import load_data
 import odl
-import numpy as np
 
-data_mat = sio.loadmat('E:/Data/spectral_ct/aux_corr_in_real_ct_image.mat')
-data = data_mat['decomposedBasisProjectionsmmObj']
-data = data.swapaxes(0, 2)
+data = load_data()
 
-reco_space = odl.uniform_discr([-150, -150], [150, 150], [600, 600])
-
-angle_interval = odl.uniform_partition(0, np.pi, 180)
-detector_partition = odl.uniform_partition(-150 * np.sqrt(2),
-                                           150 * np.sqrt(2),
-                                           853)
-
-geometry = odl.tomo.Parallel2dGeometry(angle_interval, detector_partition)
-
-ray_trafo = odl.tomo.RayTransform(reco_space, geometry, impl='astra_cuda')
+space = odl.uniform_discr([-150, -150], [150, 150], [600, 600])
+geometry = odl.tomo.parallel_beam_geometry(space,
+                                           angles=data.shape[1],
+                                           det_shape=data.shape[2])
+ray_trafo = odl.tomo.RayTransform(space, geometry, impl='astra_cuda')
 
 x = ray_trafo.domain.zero()
 rhs = ray_trafo.range.element(data[1])
