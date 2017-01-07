@@ -15,22 +15,75 @@ def load_data():
     geometry : odl.tomo.Geometry
         Geometry of the data
     """
-
     current_path = os.path.dirname(os.path.realpath(__file__))
     data_path = os.path.join(current_path,
                              'data',
                              'aux_corr_in_real_ct_image.mat')
 
-    data_mat = sio.loadmat(data_path)
+    try:
+        data_mat = sio.loadmat(data_path)
+    except IOError:
+        raise IOError('data/aux_corr_in_real_ct_image.mat missing, contact '
+                      'developers for a copy of the data or use another data '
+                      'source.')
 
     data = data_mat['decomposedBasisProjectionsmmObj']
     data = data.swapaxes(0, 2)
 
-    angle_interval = odl.uniform_partition(0, np.pi, 180)
+    angle_partition = odl.uniform_partition(0, np.pi, 180)
     detector_partition = odl.uniform_partition(-150 * np.sqrt(2),
                                                150 * np.sqrt(2),
                                                853)
-    geometry = odl.tomo.Parallel2dGeometry(angle_interval, detector_partition)
+    geometry = odl.tomo.Parallel2dGeometry(angle_partition, detector_partition)
+
+    return data, geometry
+
+
+def load_fan_data():
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    data_path = os.path.join(current_path,
+                             'data', 'simulated_images_2017_01_06',
+                             'head_image.mat')
+
+    try:
+        data_mat = sio.loadmat(data_path)
+    except IOError:
+        raise IOError('data/simulated_images_2017_01_06/head_image.mat missing, '
+                      'contact '
+                      'developers for a copy of the data or use another data '
+                      'source.')
+
+    # print(sorted(data_mat.keys()))
+    data = data_mat['decomposedbasisProjectionsmm']
+    data = data.swapaxes(0, 2)
+
+    # Create approximate fan flat geometry.
+    det_size = np.deg2rad(0.0573) * 883 * (500 + 500)
+
+    angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
+    detector_partition = odl.uniform_partition(-det_size / 2.0,
+                                               det_size / 2.0,
+                                               883)
+
+    geometry = odl.tomo.FanFlatGeometry(angle_partition, detector_partition,
+                                        src_radius=500,
+                                        det_radius=500)
+
+    # Convert to true fan flat geometry
+    tmp_space = odl.uniform_discr_frompartition(geometry.partition,
+                                                interp='linear')
+    rot_angles = tmp_space.meshgrid[0]
+    fan_angles = tmp_space.meshgrid[1]
+    data = list(data)
+    data[0] = tmp_space.element(data[0])
+    data[1] = tmp_space.element(data[1])
+    fan_dist = 1000 * np.arctan(fan_angles / 1000)
+    data[0] = data[0].interpolation((rot_angles, fan_dist),
+                                    bounds_check=False)
+    data[0] = data[0][::-1]
+    data[1] = data[1].interpolation((rot_angles, fan_dist),
+                                    bounds_check=False)
+    data[1] = data[1][::-1]
 
     return data, geometry
 

@@ -9,9 +9,9 @@ grad is the gradient and || . ||_* is the nuclear norm.
 import odl
 import numpy as np
 import scipy.linalg as spl
-from util import cov_matrix, load_data
+from util import cov_matrix, load_data, load_fan_data
 
-data, geometry = load_data()
+data, geometry = load_fan_data()
 
 space = odl.uniform_discr([-150, -150], [150, 150], [200, 200])
 
@@ -38,15 +38,16 @@ regularizer = 0.01 * odl.solvers.NuclearNorm(L.range)
 fbp_op = odl.tomo.fbp_op(ray_trafo)
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 
-f = odl.solvers.ZeroFunctional(A.domain)
+f = odl.solvers.IndicatorBox(A.domain, 0, 1)
 g = [data_discrepancy, regularizer]
-L = [op, L]
+lin_ops = [op, L]
 tau = 1.0
-sigma = [0.0003, 1]
+sigma = [1.0/odl.power_method_opnorm(op)**2,
+         1.0/odl.power_method_opnorm(grad)**2]
 niter = 100
 
-callback = (odl.solvers.CallbackShow(display_step=5) &
+callback = (odl.solvers.CallbackShow(display_step=1) &
             odl.solvers.CallbackPrintIteration())
 
-odl.solvers.douglas_rachford_pd(x, f, g, L, tau, sigma, niter,
+odl.solvers.douglas_rachford_pd(x, f, g, lin_ops, tau, sigma, niter,
                                 callback=callback)

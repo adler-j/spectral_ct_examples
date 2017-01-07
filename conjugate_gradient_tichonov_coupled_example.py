@@ -9,9 +9,9 @@ is the gradient.
 import odl
 import numpy as np
 import scipy.linalg as spl
-from util import cov_matrix, load_data
+from util import cov_matrix, load_data, load_fan_data
 
-data, geometry = load_data()
+data, geometry = load_fan_data()
 
 space = odl.uniform_discr([-150, -150], [150, 150], [200, 200])
 
@@ -29,7 +29,7 @@ A_corr = W * A
 grad = odl.Gradient(space)
 L = odl.DiagonalOperator(grad, grad)
 
-op = A_corr.adjoint * A_corr + 5 * L.adjoint * L
+op = A_corr.adjoint * A_corr + 10 * L.adjoint * L
 
 fbp_op = odl.tomo.fbp_op(ray_trafo, filter_type='Hann', frequency_scaling=0.7)
 
