@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import signal
 import scipy.io as sio
+import os
+import odl
 
 
 def load_data():
@@ -8,15 +10,29 @@ def load_data():
 
     Returns
     -------
-    mat1_sino : numpy.ndarray
-        projection of material 1
-    mat2_sino : numpy.ndarray
-        projection of material 2
+    mat1_sino, mat2_sino : numpy.ndarray
+        projection of material 1 and 2
+    geometry : odl.tomo.Geometry
+        Geometry of the data
     """
-    data_mat = sio.loadmat('E:/Data/spectral_ct/aux_corr_in_real_ct_image.mat')
+
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    data_path = os.path.join(current_path,
+                             'data',
+                             'aux_corr_in_real_ct_image.mat')
+
+    data_mat = sio.loadmat(data_path)
+
     data = data_mat['decomposedBasisProjectionsmmObj']
     data = data.swapaxes(0, 2)
-    return data
+
+    angle_interval = odl.uniform_partition(0, np.pi, 180)
+    detector_partition = odl.uniform_partition(-150 * np.sqrt(2),
+                                               150 * np.sqrt(2),
+                                               853)
+    geometry = odl.tomo.Parallel2dGeometry(angle_interval, detector_partition)
+
+    return data, geometry
 
 
 def estimate_cov(I1, I2):

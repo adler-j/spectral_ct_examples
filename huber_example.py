@@ -8,13 +8,10 @@ The problem is solved using the BFGS quasi-newton method.
 import odl
 from util import load_data
 
-data = load_data()
+data, geometry = load_data()
 
 space = odl.uniform_discr([-150, -150], [150, 150], [600, 600])
 
-geometry = odl.tomo.parallel_beam_geometry(space,
-                                           angles=data.shape[1],
-                                           det_shape=data.shape[2])
 ray_trafo = odl.tomo.RayTransform(space, geometry, impl='astra_cuda')
 
 # Data discrepancy
