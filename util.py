@@ -85,9 +85,10 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
     data = data.swapaxes(0, 2)
 
     if fan_flat_data:
-        det_size = 854
+        det_size = 853
 
-        angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
+        angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360,
+                                                nodes_on_bdry=[[True, False]])
         detector_partition = odl.uniform_partition(-det_size / 2.0,
                                                    det_size / 2.0,
                                                    853)
@@ -115,7 +116,8 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
         # Create approximate fan flat geometry.
         det_size = 883 * (500 + 500)
 
-        angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
+        angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360,
+                                                nodes_on_bdry=[[True, False]])
         detector_partition = odl.uniform_partition(-det_size / 2.0,
                                                    det_size / 2.0,
                                                    883)
