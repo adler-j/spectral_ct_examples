@@ -39,7 +39,23 @@ def load_data():
     return data, geometry
 
 
-def load_fan_data():
+def fan_to_fan_flat(geometry, data):
+    tmp_space = odl.uniform_discr_frompartition(geometry.partition,
+                                                interp='linear')
+    rot_angles = tmp_space.meshgrid[0]
+    fan_angles = tmp_space.meshgrid[1]
+    data = tmp_space.element(data)
+
+    source_to_detector = geometry.src_radius + geometry.det_radius
+
+    fan_dist = source_to_detector * np.arctan(fan_angles / source_to_detector)
+    data = data.interpolation((rot_angles, fan_dist),
+                              bounds_check=False)
+    data = data[::-1]
+    return data
+
+
+def load_fan_data(return_crlb=False):
     current_path = os.path.dirname(os.path.realpath(__file__))
     data_path = os.path.join(current_path,
                              'data', 'simulated_images_2017_01_06',
@@ -70,22 +86,21 @@ def load_fan_data():
                                         det_radius=500)
 
     # Convert to true fan flat geometry
-    tmp_space = odl.uniform_discr_frompartition(geometry.partition,
-                                                interp='linear')
-    rot_angles = tmp_space.meshgrid[0]
-    fan_angles = tmp_space.meshgrid[1]
-    data = list(data)
-    data[0] = tmp_space.element(data[0])
-    data[1] = tmp_space.element(data[1])
-    fan_dist = 1000 * np.arctan(fan_angles / 1000)
-    data[0] = data[0].interpolation((rot_angles, fan_dist),
-                                    bounds_check=False)
-    data[0] = data[0][::-1]
-    data[1] = data[1].interpolation((rot_angles, fan_dist),
-                                    bounds_check=False)
-    data[1] = data[1][::-1]
+    data[0][:] = fan_to_fan_flat(geometry, data[0])
+    data[1][:] = fan_to_fan_flat(geometry, data[1])
 
-    return data, geometry
+    if not return_crlb:
+        return data, geometry
+    else:
+        crlb = data_mat['CRLB']
+        crlb = crlb.swapaxes(0, 1)
+
+        crlb[..., 0, 0][:] = fan_to_fan_flat(geometry, crlb[..., 0, 0])
+        crlb[..., 0, 1][:] = fan_to_fan_flat(geometry, crlb[..., 0, 1])
+        crlb[..., 1, 0][:] = fan_to_fan_flat(geometry, crlb[..., 1, 0])
+        crlb[..., 1, 1][:] = fan_to_fan_flat(geometry, crlb[..., 1, 1])
+
+        return data, geometry, crlb
 
 
 def estimate_cov(I1, I2):
@@ -102,6 +117,35 @@ def estimate_cov(I1, I2):
     sigma /= (W * H - 1)
 
     return sigma / 36.0  # unknown factor, too lazy to solve
+
+
+def inverse_sqrt_matrix(mat):
+    """Compute pointwise inverse square root of matri(ces).
+
+    See formula from wikipedia:
+    https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix
+    """
+    a = mat[..., 0, 0]
+    b = mat[..., 0, 1]
+    c = mat[..., 1, 1]
+
+    tau = a + c
+    delta = a * c - b * b
+
+    s = np.sqrt(delta)
+    t = np.sqrt(tau + 2 * s)
+
+    mat_sqrt = np.zeros(mat.shape)
+    mat_sqrt[..., 0, 0] = a + s
+    mat_sqrt[..., 0, 1] = b
+    mat_sqrt[..., 1, 0] = b
+    mat_sqrt[..., 1, 1] = c + s
+    mat_sqrt /= t[..., None, None]
+
+    # compute inverse
+    mat_sqrt_inv = np.linalg.inv(mat_sqrt)
+
+    return mat_sqrt_inv
 
 
 def cov_matrix(data):
