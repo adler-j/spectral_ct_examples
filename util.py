@@ -55,6 +55,12 @@ def fan_to_fan_flat(geometry, data):
     return data
 
 
+def swap_axes(array):
+    array = np.swapaxes(array, 0, -2)
+    array = np.swapaxes(array, 1, -1)
+    return array
+
+
 def load_fan_data(return_crlb=False, fan_flat_data=True):
     if fan_flat_data:
         file_name = 'runs_2017_01_07_lineardet'
@@ -98,11 +104,11 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
             crlb = data_mat['CRLB']
             crlb = crlb.swapaxes(0, 1)
             crlb[:] = crlb[::-1]
-            crlb = np.moveaxis(crlb, [-2, -1], [0, 1])
+            crlb = swap_axes(crlb)
 
             # Negative correlation
-            crlb[0, 1] *= -1
-            crlb[1, 0] *= -1
+            #crlb[0, 1] *= -1
+            #crlb[1, 0] *= -1
 
             return data, geometry, crlb
     else:
@@ -181,9 +187,9 @@ def inverse_sqrt_matrix(mat):
     mat_sqrt /= t[None, None]
 
     # compute inverse, need to move 2x2 matrix to last
-    mat_sqrt = np.moveaxis(mat_sqrt, [0, 1], [-2, -1])
+    mat_sqrt = swap_axes(mat_sqrt)
     mat_sqrt_inv = np.linalg.inv(mat_sqrt)
-    mat_sqrt_inv = np.moveaxis(mat_sqrt_inv, [-2, -1], [0, 1])
+    mat_sqrt_inv = swap_axes(mat_sqrt_inv)
 
     return mat_sqrt_inv
 
