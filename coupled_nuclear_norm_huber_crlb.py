@@ -25,8 +25,8 @@ L = odl.DiagonalOperator(grad, 2)
 mat_sqrt_inv = inverse_sqrt_matrix(crlb)
 
 re = ray_trafo.range.element
-W = odl.ProductSpaceOperator([[odl.MultiplyOperator(re(mat_sqrt_inv[..., 0, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[..., 0, 1]))],
-                              [odl.MultiplyOperator(re(mat_sqrt_inv[..., 1, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[..., 1, 1]))]])
+W = odl.ProductSpaceOperator([[odl.MultiplyOperator(re(mat_sqrt_inv[0, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[0, 1]))],
+                              [odl.MultiplyOperator(re(mat_sqrt_inv[1, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[1, 1]))]])
 
 op = W * A
 
@@ -43,7 +43,9 @@ huber = 0.003 * odl.solvers.MoreauEnvelope(regularizer, sigma=0.001)
 
 func = data_discrepancy * op + huber * L
 
-callback = (odl.solvers.CallbackShow(clim=[0.8, 1.2]) &
+callback = (odl.solvers.CallbackShow() &
+            odl.solvers.CallbackShow(clim=[0.9, 1.1]) &
             odl.solvers.CallbackPrintIteration())
-odl.solvers.bfgs_method(func, x, line_search=0.01, maxiter=200, num_store=10,
+
+odl.solvers.bfgs_method(func, x, line_search=0.02, maxiter=400, num_store=50,
                         callback=callback)

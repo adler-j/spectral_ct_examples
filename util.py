@@ -85,7 +85,7 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
     data = data.swapaxes(0, 2)
 
     if fan_flat_data:
-        det_size = 853
+        det_size = 854
 
         angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
         detector_partition = odl.uniform_partition(-det_size / 2.0,
@@ -141,8 +141,8 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
             crlb[1, 1][:] = fan_to_fan_flat(geometry, crlb[1, 1])
 
             # Negative correlation
-            crlb[0, 1] *= -1
-            crlb[1, 0] *= -1
+            # crlb[0, 1] *= -1
+            # crlb[1, 0] *= -1
 
             return data, geometry, crlb
 

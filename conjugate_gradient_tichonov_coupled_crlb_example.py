@@ -22,22 +22,24 @@ A = odl.DiagonalOperator(ray_trafo, ray_trafo)
 mat_sqrt_inv = inverse_sqrt_matrix(crlb)
 
 re = ray_trafo.range.element
-W = odl.ProductSpaceOperator([[odl.MultiplyOperator(re(mat_sqrt_inv[..., 0, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[..., 0, 1]))],
-                              [odl.MultiplyOperator(re(mat_sqrt_inv[..., 1, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[..., 1, 1]))]])
+W = odl.ProductSpaceOperator([[odl.MultiplyOperator(re(mat_sqrt_inv[0, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[0, 1]))],
+                              [odl.MultiplyOperator(re(mat_sqrt_inv[1, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[1, 1]))]])
 A_corr = W * A
 
 grad = odl.Gradient(space)
 L = odl.DiagonalOperator(grad, grad)
 
-op = A_corr.adjoint * A_corr + 50 * L.adjoint * L
+op = A_corr.adjoint * A_corr + 200 * L.adjoint * L
 
 fbp_op = odl.tomo.fbp_op(ray_trafo, filter_type='Hann', frequency_scaling=0.7)
-
-callback = (odl.solvers.CallbackShow(display_step=1) &
-            odl.solvers.CallbackPrintIteration())
 
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 x.show('filtered back-projection')
 rhs = A_corr.adjoint(W(data))
+
+callback = (odl.solvers.CallbackShow() &
+            odl.solvers.CallbackShow(clim=[0.9, 1.1]) &
+            odl.solvers.CallbackPrint(odl.solvers.L2Norm(op.range) * (op - rhs)))
+
 odl.solvers.conjugate_gradient(op, x, rhs, 100,
                                callback=callback)
