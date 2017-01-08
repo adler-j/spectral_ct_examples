@@ -98,6 +98,11 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
             crlb = data_mat['CRLB']
             crlb = crlb.swapaxes(0, 1)
             crlb[:] = crlb[::-1]
+            crlb = np.moveaxis(crlb, [-2, -1], [0, 1])
+
+            # Negative correlation
+            crlb[0, 1] *= -1
+            crlb[1, 0] *= -1
 
             return data, geometry, crlb
     else:
@@ -122,11 +127,16 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
         else:
             crlb = data_mat['CRLB']
             crlb = crlb.swapaxes(0, 1)
+            crlb = np.moveaxis(crlb, [-2, -1], [0, 1])
 
-            crlb[..., 0, 0][:] = fan_to_fan_flat(geometry, crlb[..., 0, 0])
-            crlb[..., 0, 1][:] = fan_to_fan_flat(geometry, crlb[..., 0, 1])
-            crlb[..., 1, 0][:] = fan_to_fan_flat(geometry, crlb[..., 1, 0])
-            crlb[..., 1, 1][:] = fan_to_fan_flat(geometry, crlb[..., 1, 1])
+            crlb[0, 0][:] = fan_to_fan_flat(geometry, crlb[0, 0])
+            crlb[0, 1][:] = fan_to_fan_flat(geometry, crlb[0, 1])
+            crlb[1, 0][:] = fan_to_fan_flat(geometry, crlb[1, 0])
+            crlb[1, 1][:] = fan_to_fan_flat(geometry, crlb[1, 1])
+
+            # Negative correlation
+            crlb[0, 1] *= -1
+            crlb[1, 0] *= -1
 
             return data, geometry, crlb
 
@@ -153,9 +163,9 @@ def inverse_sqrt_matrix(mat):
     See formula from wikipedia:
     https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix
     """
-    a = mat[..., 0, 0]
-    b = mat[..., 0, 1]
-    c = mat[..., 1, 1]
+    a = mat[0, 0]
+    b = mat[0, 1]
+    c = mat[1, 1]
 
     tau = a + c
     delta = a * c - b * b
@@ -164,14 +174,16 @@ def inverse_sqrt_matrix(mat):
     t = np.sqrt(tau + 2 * s)
 
     mat_sqrt = np.zeros(mat.shape)
-    mat_sqrt[..., 0, 0] = a + s
-    mat_sqrt[..., 0, 1] = b
-    mat_sqrt[..., 1, 0] = b
-    mat_sqrt[..., 1, 1] = c + s
-    mat_sqrt /= t[..., None, None]
+    mat_sqrt[0, 0] = a + s
+    mat_sqrt[0, 1] = b
+    mat_sqrt[1, 0] = b
+    mat_sqrt[1, 1] = c + s
+    mat_sqrt /= t[None, None]
 
-    # compute inverse
+    # compute inverse, need to move 2x2 matrix to last
+    mat_sqrt = np.moveaxis(mat_sqrt, [0, 1], [-2, -1])
     mat_sqrt_inv = np.linalg.inv(mat_sqrt)
+    mat_sqrt_inv = np.moveaxis(mat_sqrt_inv, [-2, -1], [0, 1])
 
     return mat_sqrt_inv
 

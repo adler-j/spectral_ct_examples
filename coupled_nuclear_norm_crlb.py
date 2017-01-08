@@ -25,26 +25,36 @@ L = odl.DiagonalOperator(grad, 2)
 mat_sqrt_inv = inverse_sqrt_matrix(crlb)
 
 re = ray_trafo.range.element
-W = odl.ProductSpaceOperator([[odl.MultiplyOperator(re(mat_sqrt_inv[..., 0, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[..., 0, 1]))],
-                              [odl.MultiplyOperator(re(mat_sqrt_inv[..., 1, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[..., 1, 1]))]])
+W = odl.ProductSpaceOperator([[odl.MultiplyOperator(re(mat_sqrt_inv[0, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[0, 1]))],
+                              [odl.MultiplyOperator(re(mat_sqrt_inv[1, 0])), odl.MultiplyOperator(re(mat_sqrt_inv[1, 1]))]])
 
 op = W * A
 
 rhs = W(data)
 
 data_discrepancy = odl.solvers.L2Norm(A.range).translated(rhs)
-regularizer = 0.00005 * odl.solvers.NuclearNorm(L.range)
+regularizer = 0.003 * odl.solvers.NuclearNorm(L.range)
 
 fbp_op = odl.tomo.fbp_op(ray_trafo,
                          filter_type='Hann', frequency_scaling=0.7)
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 
+# Functionals
 f = odl.solvers.IndicatorNonnegativity(A.domain)
 g = [data_discrepancy, regularizer]
 lin_ops = [op, L]
-tau = 5.0
-sigma = [1.0 / (tau * odl.power_method_opnorm(op)**2),
-         1.0 / (tau * odl.power_method_opnorm(grad)**2)]
+
+# Rescale operators to be about equal, improves convergence
+op_norm = odl.power_method_opnorm(op)
+L_norm = odl.power_method_opnorm(L)
+lin_ops[1] = (op_norm / L_norm) * lin_ops[1]
+g[1] = (L_norm / op_norm) * g[1]
+
+# Step sizes
+tau = 1.0
+sigma = [1.0 / (tau * op_norm**2),
+         1.0 / (tau * op_norm**2)]
+
 niter = 1000
 
 callback = (odl.solvers.CallbackShow() &
@@ -52,4 +62,4 @@ callback = (odl.solvers.CallbackShow() &
             odl.solvers.CallbackPrint(data_discrepancy * op + regularizer * L))
 
 odl.solvers.douglas_rachford_pd(x, f, g, lin_ops, tau, sigma, niter,
-                                callback=callback, lam=1.5)
+                                callback=callback)
