@@ -55,10 +55,15 @@ def fan_to_fan_flat(geometry, data):
     return data
 
 
-def load_fan_data(return_crlb=False):
+def load_fan_data(return_crlb=False, fan_flat_data=True):
+    if fan_flat_data:
+        file_name = 'runs_2017_01_07_lineardet'
+    else:
+        file_name = 'simulated_images_2017_01_06'
+
     current_path = os.path.dirname(os.path.realpath(__file__))
     data_path = os.path.join(current_path,
-                             'data', 'simulated_images_2017_01_06',
+                             'data', file_name,
                              'head_image.mat')
 
     try:
@@ -73,34 +78,57 @@ def load_fan_data(return_crlb=False):
     data = data_mat['decomposedbasisProjectionsmm']
     data = data.swapaxes(0, 2)
 
-    # Create approximate fan flat geometry.
-    det_size = np.deg2rad(0.0573) * 883 * (500 + 500)
+    if fan_flat_data:
+        det_size = 853
 
-    angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
-    detector_partition = odl.uniform_partition(-det_size / 2.0,
-                                               det_size / 2.0,
-                                               883)
+        angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
+        detector_partition = odl.uniform_partition(-det_size / 2.0,
+                                                   det_size / 2.0,
+                                                   853)
 
-    geometry = odl.tomo.FanFlatGeometry(angle_partition, detector_partition,
-                                        src_radius=500,
-                                        det_radius=500)
+        geometry = odl.tomo.FanFlatGeometry(angle_partition, detector_partition,
+                                            src_radius=500,
+                                            det_radius=500)
 
-    # Convert to true fan flat geometry
-    data[0][:] = fan_to_fan_flat(geometry, data[0])
-    data[1][:] = fan_to_fan_flat(geometry, data[1])
+        data[:] = data[:, ::-1]
 
-    if not return_crlb:
-        return data, geometry
+        if not return_crlb:
+            return data, geometry
+        else:
+            crlb = data_mat['CRLB']
+            crlb = crlb.swapaxes(0, 1)
+            crlb[:] = crlb[::-1]
+
+            return data, geometry, crlb
     else:
-        crlb = data_mat['CRLB']
-        crlb = crlb.swapaxes(0, 1)
+        # Create approximate fan flat geometry.
+        det_size = 883 * (500 + 500)
 
-        crlb[..., 0, 0][:] = fan_to_fan_flat(geometry, crlb[..., 0, 0])
-        crlb[..., 0, 1][:] = fan_to_fan_flat(geometry, crlb[..., 0, 1])
-        crlb[..., 1, 0][:] = fan_to_fan_flat(geometry, crlb[..., 1, 0])
-        crlb[..., 1, 1][:] = fan_to_fan_flat(geometry, crlb[..., 1, 1])
+        angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360)
+        detector_partition = odl.uniform_partition(-det_size / 2.0,
+                                                   det_size / 2.0,
+                                                   883)
 
-        return data, geometry, crlb
+        geometry = odl.tomo.FanFlatGeometry(angle_partition, detector_partition,
+                                            src_radius=500,
+                                            det_radius=500)
+
+        # Convert to true fan flat geometry
+        data[0][:] = fan_to_fan_flat(geometry, data[0])
+        data[1][:] = fan_to_fan_flat(geometry, data[1])
+
+        if not return_crlb:
+            return data, geometry
+        else:
+            crlb = data_mat['CRLB']
+            crlb = crlb.swapaxes(0, 1)
+
+            crlb[..., 0, 0][:] = fan_to_fan_flat(geometry, crlb[..., 0, 0])
+            crlb[..., 0, 1][:] = fan_to_fan_flat(geometry, crlb[..., 0, 1])
+            crlb[..., 1, 0][:] = fan_to_fan_flat(geometry, crlb[..., 1, 0])
+            crlb[..., 1, 1][:] = fan_to_fan_flat(geometry, crlb[..., 1, 1])
+
+            return data, geometry, crlb
 
 
 def estimate_cov(I1, I2):
