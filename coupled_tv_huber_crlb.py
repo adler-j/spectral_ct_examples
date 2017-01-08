@@ -13,7 +13,7 @@ from util import cov_matrix, load_data, load_fan_data, inverse_sqrt_matrix
 
 data, geometry, crlb = load_fan_data(return_crlb=True)
 
-space = odl.uniform_discr([-15, -15], [15, 15], [400, 400])
+space = odl.uniform_discr([-150, -150], [150, 150], [400, 400])
 
 ray_trafo = odl.tomo.RayTransform(space, geometry, impl='astra_cuda')
 A = odl.DiagonalOperator(ray_trafo, 2)
@@ -33,17 +33,18 @@ op = W * A
 rhs = W(data)
 
 data_discrepancy = odl.solvers.L2NormSquared(A.range).translated(rhs)
-regularizer = odl.solvers.SeparableSum(odl.solvers.GroupL1Norm(grad.range), 2)
+
+l1_norm = odl.solvers.GroupL1Norm(grad.range)
+huber = 1.0 * odl.solvers.MoreauEnvelope(l1_norm, sigma=0.01)
+regularizer = odl.solvers.SeparableSum(huber, 2)
+
+func = data_discrepancy * op + regularizer * L
 
 fbp_op = odl.tomo.fbp_op(ray_trafo,
-                         filter_type='Hann', frequency_scaling=0.7)
+                         filter_type='Hann', frequency_scaling=0.3)
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 
-huber = 1.0 * odl.solvers.MoreauEnvelope(regularizer, sigma=0.3)
-
-func = data_discrepancy * op + huber * L
-
-callback = (odl.solvers.CallbackShow(display_step=1) &
+callback = (odl.solvers.CallbackShow(display_step=10) &
             odl.solvers.CallbackShow(display_step=10, clim=[0.9, 1.1]) &
             odl.solvers.CallbackPrintIteration())
 
