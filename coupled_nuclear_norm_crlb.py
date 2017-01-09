@@ -33,27 +33,21 @@ op = W * A
 rhs = W(data)
 
 data_discrepancy = odl.solvers.L2NormSquared(A.range).translated(rhs)
-regularizer = 0.0003 * odl.solvers.NuclearNorm(L.range)
+regularizer = 0.001 * odl.solvers.NuclearNorm(L.range)
 
 fbp_op = odl.tomo.fbp_op(ray_trafo,
-                         filter_type='Hann', frequency_scaling=0.7)
+                         filter_type='Hann', frequency_scaling=0.5)
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 
 # Functionals
-f = odl.solvers.IndicatorNonnegativity(A.domain)
+f = odl.solvers.ZeroFunctional(A.domain)
 g = [data_discrepancy, regularizer]
 lin_ops = [op, L]
 
-# Rescale operators to be about equal, improves convergence
-op_norm = odl.power_method_opnorm(op)
-L_norm = odl.power_method_opnorm(L)
-lin_ops[1] = (op_norm / L_norm) * lin_ops[1]
-g[1] = (L_norm / op_norm) * g[1]
-
 # Step sizes
 tau = 1.0
-sigma = [1.0 / (tau * op_norm**2),
-         1.0 / (tau * op_norm**2)]
+sigma = [1.0 / (tau * odl.power_method_opnorm(op)**2),
+         1.0 / (tau * odl.power_method_opnorm(L)**2)]
 
 niter = 1000
 
