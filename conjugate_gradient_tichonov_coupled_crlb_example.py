@@ -13,7 +13,7 @@ from util import cov_matrix, load_data, load_fan_data, inverse_sqrt_matrix
 
 data, geometry, crlb = load_fan_data(return_crlb=True)
 
-space = odl.uniform_discr([-150, -150], [150, 150], [200, 200])
+space = odl.uniform_discr([-150, -150], [150, 150], [400, 400])
 
 ray_trafo = odl.tomo.RayTransform(space, geometry, impl='astra_cuda')
 A = odl.DiagonalOperator(ray_trafo, ray_trafo)
@@ -29,7 +29,8 @@ A_corr = W * A
 grad = odl.Gradient(space)
 L = odl.DiagonalOperator(grad, grad)
 
-op = A_corr.adjoint * A_corr + 200 * L.adjoint * L
+lam = 100
+op = A_corr.adjoint * A_corr + lam * L.adjoint * L
 
 fbp_op = odl.tomo.fbp_op(ray_trafo, filter_type='Hann', frequency_scaling=0.7)
 
@@ -37,9 +38,12 @@ x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 x.show('filtered back-projection')
 rhs = A_corr.adjoint(W(data))
 
+func = (odl.solvers.L2NormSquared(A_corr.range) * (A_corr - W(data)) +
+        lam * odl.solvers.L2NormSquared(L.range) * L)
+
 callback = (odl.solvers.CallbackShow() &
             odl.solvers.CallbackShow(clim=[0.9, 1.1]) &
-            odl.solvers.CallbackPrint(odl.solvers.L2Norm(op.range) * (op - rhs)))
+            odl.solvers.CallbackPrint(func))
 
-odl.solvers.conjugate_gradient(op, x, rhs, 100,
+odl.solvers.conjugate_gradient(op, x, rhs, 300,
                                callback=callback)

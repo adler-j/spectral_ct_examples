@@ -33,7 +33,7 @@ op = W * A
 rhs = W(data)
 
 data_discrepancy = odl.solvers.L2NormSquared(A.range).translated(rhs)
-regularizer = 0.001 * odl.solvers.NuclearNorm(L.range)
+regularizer = 0.0005 * odl.solvers.NuclearNorm(L.range)
 
 fbp_op = odl.tomo.fbp_op(ray_trafo,
                          filter_type='Hann', frequency_scaling=0.5)
