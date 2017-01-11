@@ -13,7 +13,7 @@ from util import cov_matrix, load_data, load_fan_data, inverse_sqrt_matrix
 
 data, geometry, crlb = load_fan_data(return_crlb=True)
 
-space = odl.uniform_discr([-150, -150], [150, 150], [400, 400])
+space = odl.uniform_discr([-129, -129], [129, 129], [400, 400])
 
 ray_trafo = odl.tomo.RayTransform(space, geometry, impl='astra_cuda')
 A = odl.DiagonalOperator(ray_trafo, ray_trafo)

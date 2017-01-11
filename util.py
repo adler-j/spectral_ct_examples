@@ -61,11 +61,15 @@ def swap_axes(array):
     return array
 
 
-def load_fan_data(return_crlb=False, fan_flat_data=True):
-    if fan_flat_data:
+def load_fan_data(return_crlb=False, data_name='supersampled'):
+    if data_name == 'fan':
         file_name = 'runs_2017_01_07_lineardet'
-    else:
+    elif data_name == 'supersampled':
+        file_name = '10_Jan_2017_17_51_44_simulation_forbild_head'
+    elif data_name == 'fan_circ':
         file_name = 'simulated_images_2017_01_06'
+    else:
+        assert False
 
     current_path = os.path.dirname(os.path.realpath(__file__))
     data_path = os.path.join(current_path,
@@ -75,16 +79,16 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
     try:
         data_mat = sio.loadmat(data_path)
     except IOError:
-        raise IOError('data/simulated_images_2017_01_06/head_image.mat missing, '
+        raise IOError('{} missing, '
                       'contact '
                       'developers for a copy of the data or use another data '
-                      'source.')
+                      'source.'.format(data_path))
 
     # print(sorted(data_mat.keys()))
     data = data_mat['decomposedbasisProjectionsmm']
     data = data.swapaxes(0, 2)
 
-    if fan_flat_data:
+    if data_name == 'fan':
         det_size = 853
 
         angle_partition = odl.uniform_partition(0.5 * np.pi, 2.5 * np.pi, 360,
@@ -112,7 +116,34 @@ def load_fan_data(return_crlb=False, fan_flat_data=True):
             #crlb[1, 0] *= -1
 
             return data, geometry, crlb
-    else:
+    if data_name == 'supersampled':
+        det_size = 853
+
+        angle_partition = odl.uniform_partition(0 * np.pi, 2 * np.pi, 360)
+        detector_partition = odl.uniform_partition(-det_size / 2.0,
+                                                   det_size / 2.0,
+                                                   853)
+
+        geometry = odl.tomo.FanFlatGeometry(angle_partition, detector_partition,
+                                            src_radius=500,
+                                            det_radius=500)
+
+        #data[:] = data[:, ::-1]
+
+        if not return_crlb:
+            return data, geometry
+        else:
+            crlb = data_mat['CRLB']
+            crlb = crlb.swapaxes(0, 1)
+            #crlb[:] = crlb[::-1]
+            crlb = swap_axes(crlb)
+
+            # Negative correlation
+            #crlb[0, 1] *= -1
+            #crlb[1, 0] *= -1
+
+            return data, geometry, crlb
+    elif data_name == 'fan_circ':
         # Create approximate fan flat geometry.
         det_size = 883 * (500 + 500)
 
@@ -171,6 +202,8 @@ def inverse_sqrt_matrix(mat):
     See formula from wikipedia:
     https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix
     """
+    mat = np.asarray(mat)
+
     a = mat[0, 0]
     b = mat[0, 1]
     c = mat[1, 1]

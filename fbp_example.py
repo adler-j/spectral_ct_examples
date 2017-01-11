@@ -5,7 +5,7 @@ from util import load_data
 
 data, geometry = load_data()
 
-space = odl.uniform_discr([-150, -150], [150, 150], [600, 600])
+space = odl.uniform_discr([-129, -129], [129, 129], [600, 600])
 
 ray_trafo = odl.tomo.RayTransform(space, geometry, impl='astra_cuda')
 
