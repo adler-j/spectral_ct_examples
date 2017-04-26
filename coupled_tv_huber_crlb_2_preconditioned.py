@@ -95,7 +95,8 @@ grad = odl.Gradient(space)
 grad_vec = odl.DiagonalOperator(grad, 2)
 
 cross_terms = True
-c = 0.5
+c = 0.0
+
 if not cross_terms:
     crlb[1, 0, ...] = 0
     crlb[0, 1, ...] = 0
@@ -118,8 +119,9 @@ rhs = W(data)
 
 data_discrepancy = odl.solvers.L2NormSquared(A.range).translated(rhs)
 
+
 l1_norm = odl.solvers.L1Norm(space)
-huber = 2.5 * odl.solvers.MoreauEnvelope(l1_norm, sigma=0.01)
+huber = 1.2 * odl.solvers.MoreauEnvelope(l1_norm, sigma=0.005)
 
 my_op = MyOperatorTrace(domain=grad_vec.range, range=space, linear=False)
 
@@ -133,12 +135,12 @@ func = (data_discrepancy * op + huber * my_op * Lam * grad_vec) * precon
 fbp_op = odl.tomo.fbp_op(ray_trafo,
                          filter_type='Hann', frequency_scaling=0.7)
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
-x.show(clim=[0.9, 1.1])
+x.show('fbp', clim=[0.9, 1.1])
 x = precon_inv(x)
 
-callback = (odl.solvers.CallbackShow(display_step=1) &
-            odl.solvers.CallbackShow(display_step=5, clim=[-0.1, 0.1]) &
-            odl.solvers.CallbackShow(display_step=5, clim=[0.9, 1.1]) &
+callback = (odl.solvers.CallbackShow('iterates', display_step=10) &
+            odl.solvers.CallbackShow('low window', display_step=10, clim=[-0.1, 0.1]) &
+            odl.solvers.CallbackShow('high window', display_step=10, clim=[0.9, 1.1]) &
             odl.solvers.CallbackPrintIteration())
 
 def callback_precon(x):
@@ -147,6 +149,13 @@ def callback_precon(x):
 opnorm = odl.power_method_opnorm(op * precon)
 hessinv_estimate = odl.ScalingOperator(func.domain, 1 / opnorm ** 2)
 
-odl.solvers.bfgs_method(func, x, line_search=0.3, maxiter=1000, num_store=10,
+odl.solvers.bfgs_method(func, x, line_search=1.0, maxiter=1000, num_store=10,
                         callback=callback_precon,
                         hessinv_estimate=hessinv_estimate)
+
+result = precon(x)
+
+import scipy.io as sio
+mdict = {'water': result[0].asarray(), 'bone': result[1].asarray(),
+         'c': c, 'cross_terms': cross_terms}
+sio.savemat('result_crlb_correlated_c_{}_cross_terms_{}'.format(c, cross_terms), mdict)

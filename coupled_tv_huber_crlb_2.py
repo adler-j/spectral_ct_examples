@@ -96,7 +96,7 @@ grad_vec = odl.DiagonalOperator(grad, 2)
 
 cross_terms = True
 c = 0.5
-raise Exception
+
 if not cross_terms:
     crlb[1, 0, ...] = 0
     crlb[0, 1, ...] = 0
