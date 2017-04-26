@@ -33,7 +33,7 @@ op = A_corr.adjoint * A_corr + 10 * L.adjoint * L
 
 fbp_op = odl.tomo.fbp_op(ray_trafo, filter_type='Hann', frequency_scaling=0.7)
 
-callback = (odl.solvers.CallbackShow(display_step=10) &
+callback = (odl.solvers.CallbackShow(step=10) &
             odl.solvers.CallbackPrintIteration())
 
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])

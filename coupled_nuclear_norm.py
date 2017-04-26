@@ -46,7 +46,7 @@ sigma = [1.0/odl.power_method_opnorm(op)**2,
          1.0/odl.power_method_opnorm(grad)**2]
 niter = 100
 
-callback = (odl.solvers.CallbackShow(display_step=1) &
+callback = (odl.solvers.CallbackShow(step=1) &
             odl.solvers.CallbackPrintIteration())
 
 odl.solvers.douglas_rachford_pd(x, f, g, lin_ops, tau, sigma, niter,

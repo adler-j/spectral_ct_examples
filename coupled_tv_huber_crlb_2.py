@@ -131,9 +131,9 @@ fbp_op = odl.tomo.fbp_op(ray_trafo,
 x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 x.show(clim=[0.9, 1.1])
 
-callback = (odl.solvers.CallbackShow(display_step=5) &
-            odl.solvers.CallbackShow(display_step=5, clim=[-0.1, 0.1]) &
-            odl.solvers.CallbackShow(display_step=5, clim=[0.9, 1.1]) &
+callback = (odl.solvers.CallbackShow(step=5) &
+            odl.solvers.CallbackShow(step=5, clim=[-0.1, 0.1]) &
+            odl.solvers.CallbackShow(step=5, clim=[0.9, 1.1]) &
             odl.solvers.CallbackPrintIteration())
 
 opnorm = odl.power_method_opnorm(op)

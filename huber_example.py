@@ -9,8 +9,8 @@ import odl
 from util import load_data, load_fan_data
 
 material = 'water'
-lam = 100
-sigma = 0.03
+lam = 4
+sigma = 0.005
 
 data, geometry = load_fan_data()
 
@@ -33,13 +33,13 @@ huber = odl.solvers.MoreauEnvelope(l1_norm, sigma=sigma)
 
 func = l2 + lam * huber * grad
 
-callback = (odl.solvers.CallbackShow(display_step=50) &
-            odl.solvers.CallbackShow(display_step=50, clim=[0.9, 1.1]) &
+callback = (odl.solvers.CallbackShow(step=50) &
+            odl.solvers.CallbackShow(step=50, clim=[0.95, 1.05]) &
             odl.solvers.CallbackPrintIteration())
 
 opnorm = odl.power_method_opnorm(ray_trafo)
 reg_norm = odl.power_method_opnorm((lam * huber * grad).gradient)
-hessinv_estimate = odl.ScalingOperator(func.domain, 1 / (opnorm + reg_norm) ** 2)
+hessinv_estimate = odl.ScalingOperator(func.domain, 1 / (opnorm ** 2 + reg_norm ** 2))
 
 x = func.domain.zero()
 odl.solvers.bfgs_method(func, x, line_search=1.0, maxiter=1000, num_store=10,

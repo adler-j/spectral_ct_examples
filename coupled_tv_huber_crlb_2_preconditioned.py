@@ -138,9 +138,9 @@ x = A.domain.element([fbp_op(data[0]), fbp_op(data[1])])
 x.show('fbp', clim=[0.9, 1.1])
 x = precon_inv(x)
 
-callback = (odl.solvers.CallbackShow('iterates', display_step=10) &
-            odl.solvers.CallbackShow('low window', display_step=10, clim=[-0.1, 0.1]) &
-            odl.solvers.CallbackShow('high window', display_step=10, clim=[0.9, 1.1]) &
+callback = (odl.solvers.CallbackShow('iterates', step=10) &
+            odl.solvers.CallbackShow('low window', step=10, clim=[-0.1, 0.1]) &
+            odl.solvers.CallbackShow('high window', step=10, clim=[0.9, 1.1]) &
             odl.solvers.CallbackPrintIteration())
 
 def callback_precon(x):
